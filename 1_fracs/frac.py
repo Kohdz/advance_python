@@ -64,3 +64,23 @@ assert mul_frac(a, b) == (6, 12)
 # Be aware, you may have to copy/paste code between exercises.  They
 # also get progressively more advanced as you go.  Expect discussion
 # as we work on it.
+
+class Point:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+
+    def __repr__(self):
+        return f"Point({self.x} , {self.y})"
+
+    def __eq__(self, other):
+        return type(self) is type(other) and (self.x, self.y) == (other.x, other.y)
+
+
+from dataclasses import dataclass
+
+# # Same as Point but __init__, __repr__ and __eq__ are generated
+@dataclass
+class Point2: 
+    x: int
+    y: int

@@ -183,7 +183,6 @@ class CalculateHypot(Calculator):
         # return
 
         for operation in hypot:
-
             method = methods[operation[0]]
             if len(operation) == 2:
                 method(operation[1])

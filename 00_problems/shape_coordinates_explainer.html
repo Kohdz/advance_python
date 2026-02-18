@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shape Coordinates Explainer</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script type="text/babel">
+        const { useState } = React;
+
+        const ShapeExplainer = () => {
+            const [selectedShape, setSelectedShape] = useState('E');
+            const [hoveredCoord, setHoveredCoord] = useState(null);
+
+            const shapes = {
+                'A': [[0, 0]],
+                'B': [[0, 0], [0, 1], [0, 2]],
+                'C': [[0, 0], [0, 1], [1, 0], [1, 1]],
+                'D': [[0, 0], [1, 0], [1, 1], [2, 0]],
+                'E': [[0, 1], [1, 0], [1, 1], [1, 2]]
+            };
+
+            const shapeDescriptions = {
+                'A': 'Single block',
+                'B': 'Horizontal line (3 blocks)',
+                'C': '2x2 square',
+                'D': 'T-shape rotated',
+                'E': 'T-shape'
+            };
+
+            const coords = shapes[selectedShape];
+            
+            // Calculate grid size needed
+            const maxRow = Math.max(...coords.map(([r, c]) => r));
+            const maxCol = Math.max(...coords.map(([r, c]) => c));
+            const gridHeight = maxRow + 1;
+            const gridWidth = maxCol + 1;
+
+            // Create a grid representation
+            const grid = Array(gridHeight).fill(null).map(() => Array(gridWidth).fill(false));
+            coords.forEach(([r, c]) => {
+                grid[r][c] = true;
+            });
+
+            return (
+                <div style={{ padding: '40px', fontFamily: 'Arial, sans-serif', maxWidth: '1000px', margin: '0 auto', backgroundColor: '#f5f5f5', minHeight: '100vh' }}>
+                    <h1 style={{ textAlign: 'center', color: '#333', marginBottom: '10px' }}>
+                        📐 How Shape Coordinates Work
+                    </h1>
+                    <p style={{ textAlign: 'center', color: '#666', marginBottom: '40px', fontSize: '18px' }}>
+                        Understanding the (row, column) coordinate system
+                    </p>
+
+                    {/* Shape selector */}
+                    <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+                        <div style={{ display: 'inline-flex', gap: '10px', padding: '10px', backgroundColor: 'white', borderRadius: '10px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+                            {Object.keys(shapes).map(letter => (
+                                <button
+                                    key={letter}
+                                    onClick={() => setSelectedShape(letter)}
+                                    style={{
+                                        padding: '15px 25px',
+                                        fontSize: '20px',
+                                        fontWeight: 'bold',
+                                        border: 'none',
+                                        borderRadius: '8px',
+                                        cursor: 'pointer',
+                                        backgroundColor: selectedShape === letter ? '#4ECDC4' : '#e0e0e0',
+                                        color: selectedShape === letter ? 'white' : '#333',
+                                        transition: 'all 0.3s ease',
+                                        transform: selectedShape === letter ? 'scale(1.1)' : 'scale(1)'
+                                    }}
+                                >
+                                    {letter}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Main explanation area */}
+                    <div style={{ backgroundColor: 'white', padding: '30px', borderRadius: '15px', boxShadow: '0 4px 8px rgba(0,0,0,0.1)', marginBottom: '30px' }}>
+                        <h2 style={{ marginTop: 0, color: '#333' }}>
+                            Shape {selectedShape}: {shapeDescriptions[selectedShape]}
+                        </h2>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px', marginTop: '30px' }}>
+                            {/* Left side: Coordinates list */}
+                            <div>
+                                <h3 style={{ color: '#555', marginBottom: '20px' }}>Coordinates:</h3>
+                                <div style={{ fontSize: '18px', fontFamily: 'monospace', backgroundColor: '#f8f9fa', padding: '20px', borderRadius: '8px' }}>
+                                    <div style={{ marginBottom: '15px', color: '#666' }}>
+                                        [
+                                    </div>
+                                    {coords.map((coord, idx) => (
+                                        <div 
+                                            key={idx}
+                                            onMouseEnter={() => setHoveredCoord(idx)}
+                                            onMouseLeave={() => setHoveredCoord(null)}
+                                            style={{
+                                                marginLeft: '20px',
+                                                marginBottom: '10px',
+                                                padding: '10px',
+                                                backgroundColor: hoveredCoord === idx ? '#FFE66D' : 'transparent',
+                                                borderRadius: '5px',
+                                                transition: 'all 0.2s ease',
+                                                cursor: 'pointer',
+                                                border: hoveredCoord === idx ? '2px solid #FF6B6B' : '2px solid transparent'
+                                            }}
+                                        >
+                                            <span style={{ color: '#FF6B6B', fontWeight: 'bold' }}>[{coord[0]}, {coord[1]}]</span>
+                                            <span style={{ color: '#999', marginLeft: '15px' }}>
+                                                ← row {coord[0]}, col {coord[1]}
+                                            </span>
+                                        </div>
+                                    ))}
+                                    <div style={{ color: '#666' }}>
+                                        ]
+                                    </div>
+                                </div>
+
+                                <div style={{ marginTop: '30px', padding: '15px', backgroundColor: '#e3f2fd', borderRadius: '8px' }}>
+                                    <h4 style={{ marginTop: 0, color: '#1976d2' }}>💡 How to read it:</h4>
+                                    <p style={{ lineHeight: '1.8', marginBottom: '5px' }}>
+                                        Each coordinate is <code style={{ backgroundColor: '#fff', padding: '2px 6px', borderRadius: '3px' }}>[row, column]</code>
+                                    </p>
+                                    <p style={{ lineHeight: '1.8', marginBottom: '5px' }}>
+                                        • <strong>Row</strong>: vertical position (0 = top)
+                                    </p>
+                                    <p style={{ lineHeight: '1.8', marginBottom: '0' }}>
+                                        • <strong>Column</strong>: horizontal position (0 = left)
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Right side: Visual grid */}
+                            <div>
+                                <h3 style={{ color: '#555', marginBottom: '20px' }}>Visual Grid:</h3>
+                                <div style={{ display: 'inline-block' }}>
+                                    {/* Column headers */}
+                                    <div style={{ display: 'flex', marginLeft: '60px', marginBottom: '5px' }}>
+                                        {Array(gridWidth).fill(null).map((_, c) => (
+                                            <div key={c} style={{ width: '80px', textAlign: 'center', fontSize: '14px', color: '#666', fontWeight: 'bold' }}>
+                                                col {c}
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {grid.map((row, r) => (
+                                        <div key={r} style={{ display: 'flex', alignItems: 'center', marginBottom: '5px' }}>
+                                            {/* Row header */}
+                                            <div style={{ width: '55px', textAlign: 'right', paddingRight: '10px', fontSize: '14px', color: '#666', fontWeight: 'bold' }}>
+                                                row {r}
+                                            </div>
+                                            
+                                            {/* Grid cells */}
+                                            {row.map((filled, c) => {
+                                                const coordIdx = coords.findIndex(([cr, cc]) => cr === r && cc === c);
+                                                const isHovered = hoveredCoord === coordIdx;
+                                                
+                                                return (
+                                                    <div
+                                                        key={c}
+                                                        onMouseEnter={() => coordIdx >= 0 && setHoveredCoord(coordIdx)}
+                                                        onMouseLeave={() => setHoveredCoord(null)}
+                                                        style={{
+                                                            width: '80px',
+                                                            height: '80px',
+                                                            border: '3px solid #333',
+                                                            backgroundColor: filled 
+                                                                ? (isHovered ? '#FFE66D' : '#4ECDC4')
+                                                                : '#f0f0f0',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            fontSize: '16px',
+                                                            fontWeight: 'bold',
+                                                            color: filled ? 'white' : '#ccc',
+                                                            transition: 'all 0.3s ease',
+                                                            cursor: filled ? 'pointer' : 'default',
+                                                            transform: isHovered ? 'scale(1.1)' : 'scale(1)',
+                                                            boxShadow: isHovered ? '0 4px 8px rgba(0,0,0,0.3)' : 'none',
+                                                            zIndex: isHovered ? 10 : 1,
+                                                            position: 'relative'
+                                                        }}
+                                                    >
+                                                        {filled && (
+                                                            <div>
+                                                                [{r},{c}]
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <div style={{ marginTop: '20px', fontSize: '14px', color: '#666' }}>
+                                    <strong>Hover</strong> over coordinates or grid cells to see connections
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Step-by-step explanation for shape E */}
+                    {selectedShape === 'E' && (
+                        <div style={{ backgroundColor: '#fff3e0', padding: '30px', borderRadius: '15px', boxShadow: '0 4px 8px rgba(0,0,0,0.1)' }}>
+                            <h3 style={{ marginTop: 0, color: '#e65100' }}>
+                                📝 Step-by-Step Example: Shape E
+                            </h3>
+                            
+                            <div style={{ lineHeight: '2', fontSize: '16px' }}>
+                                <p><strong>The coordinates:</strong> <code>[[0, 1], [1, 0], [1, 1], [1, 2]]</code></p>
+                                
+                                <ol style={{ paddingLeft: '20px' }}>
+                                    <li>
+                                        <strong>[0, 1]</strong> → Place a block at <strong>row 0, column 1</strong>
+                                        <div style={{ marginLeft: '20px', marginTop: '5px', color: '#666' }}>
+                                            This is the top row, middle column (the top of the T)
+                                        </div>
+                                    </li>
+                                    <li>
+                                        <strong>[1, 0]</strong> → Place a block at <strong>row 1, column 0</strong>
+                                        <div style={{ marginLeft: '20px', marginTop: '5px', color: '#666' }}>
+                                            This is the second row, first column (left of the T base)
+                                        </div>
+                                    </li>
+                                    <li>
+                                        <strong>[1, 1]</strong> → Place a block at <strong>row 1, column 1</strong>
+                                        <div style={{ marginLeft: '20px', marginTop: '5px', color: '#666' }}>
+                                            This is the second row, middle column (center of the T base)
+                                        </div>
+                                    </li>
+                                    <li>
+                                        <strong>[1, 2]</strong> → Place a block at <strong>row 1, column 2</strong>
+                                        <div style={{ marginLeft: '20px', marginTop: '5px', color: '#666' }}>
+                                            This is the second row, last column (right of the T base)
+                                        </div>
+                                    </li>
+                                </ol>
+
+                                <div style={{ marginTop: '20px', padding: '15px', backgroundColor: 'white', borderRadius: '8px' }}>
+                                    <strong>Result:</strong> A T-shaped piece
+                                    <pre style={{ marginTop: '10px', fontSize: '20px', lineHeight: '1.2' }}>
+{`     col 0   col 1   col 2
+row 0          #
+row 1    #      #       #`}
+                                    </pre>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* All shapes reference */}
+                    <div style={{ marginTop: '30px', backgroundColor: 'white', padding: '30px', borderRadius: '15px', boxShadow: '0 4px 8px rgba(0,0,0,0.1)' }}>
+                        <h3 style={{ marginTop: 0, color: '#333' }}>All Shapes Quick Reference:</h3>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginTop: '20px' }}>
+                            {Object.entries(shapes).map(([letter, shapeCoords]) => {
+                                const minRow = Math.min(...shapeCoords.map(([r]) => r));
+                                const maxRow = Math.max(...shapeCoords.map(([r]) => r));
+                                const minCol = Math.min(...shapeCoords.map(([_, c]) => c));
+                                const maxCol = Math.max(...shapeCoords.map(([_, c]) => c));
+                                const h = maxRow - minRow + 1;
+                                const w = maxCol - minCol + 1;
+                                const g = Array(h).fill(null).map(() => Array(w).fill(false));
+                                shapeCoords.forEach(([r, c]) => {
+                                    g[r - minRow][c - minCol] = true;
+                                });
+
+                                return (
+                                    <div key={letter} style={{ textAlign: 'center', padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
+                                        <div style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '10px', color: '#4ECDC4' }}>
+                                            {letter}
+                                        </div>
+                                        <div style={{ display: 'inline-block', marginBottom: '10px' }}>
+                                            {g.map((row, r) => (
+                                                <div key={r} style={{ display: 'flex' }}>
+                                                    {row.map((cell, c) => (
+                                                        <div 
+                                                            key={c} 
+                                                            style={{
+                                                                width: '30px',
+                                                                height: '30px',
+                                                                border: '2px solid #333',
+                                                                backgroundColor: cell ? '#4ECDC4' : '#fff',
+                                                                margin: '1px'
+                                                            }}
+                                                        />
+                                                    ))}
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <div style={{ fontSize: '12px', color: '#666', fontFamily: 'monospace' }}>
+                                            {JSON.stringify(shapeCoords)}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        ReactDOM.render(<ShapeExplainer />, document.getElementById('root'));
+    </script>
+</body>
+</html>

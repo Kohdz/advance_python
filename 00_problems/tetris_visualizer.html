@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tetris Block Placement Visualizer</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        const TetrisVisualizer = () => {
+            const [n, setN] = useState(4);
+            const [m, setM] = useState(4);
+            const [figures, setFigures] = useState(["D", "B", "A", "C"]);
+            const [currentStep, setCurrentStep] = useState(0);
+            const [isPlaying, setIsPlaying] = useState(false);
+            const [speed, setSpeed] = useState(500);
+            const [steps, setSteps] = useState([]);
+
+            const shapes = {
+                'A': [[0, 0]],
+                'B': [[0, 0], [0, 1], [0, 2]],
+                'C': [[0, 0], [0, 1], [1, 0], [1, 1]],
+                'D': [[0, 0], [1, 0], [1, 1], [2, 0]],
+                'E': [[0, 1], [1, 0], [1, 1], [1, 2]]
+            };
+
+            const colors = [
+                '#f0f0f0', // 0 - empty
+                '#FF6B6B', // 1 - red
+                '#4ECDC4', // 2 - teal
+                '#FFE66D', // 3 - yellow
+                '#95E1D3', // 4 - mint
+                '#F38181', // 5 - pink
+                '#AA96DA', // 6 - purple
+                '#FCBAD3', // 7 - light pink
+                '#A8D8EA', // 8 - light blue
+            ];
+
+            const generateSteps = () => {
+                const allSteps = [];
+                const grid = Array(n).fill(null).map(() => Array(m).fill(0));
+
+                for (let i = 0; i < figures.length; i++) {
+                    const shapeType = figures[i];
+                    const shapeId = i + 1;
+                    const shape = shapes[shapeType];
+                    let placed = false;
+
+                    for (let r = 0; r < n && !placed; r++) {
+                        for (let c = 0; c < m && !placed; c++) {
+                            // Check if shape fits
+                            let canFit = true;
+                            const cellsToCheck = [];
+                            
+                            for (let [dr, dc] of shape) {
+                                const nr = r + dr;
+                                const nc = c + dc;
+                                cellsToCheck.push([nr, nc]);
+                                
+                                if (!(nr >= 0 && nr < n && nc >= 0 && nc < m && grid[nr][nc] === 0)) {
+                                    canFit = false;
+                                    break;
+                                }
+                            }
+
+                            // Add step showing the check
+                            allSteps.push({
+                                grid: grid.map(row => [...row]),
+                                checking: cellsToCheck,
+                                canFit,
+                                shapeType,
+                                shapeId,
+                                position: [r, c],
+                                placed: false,
+                                message: `Checking position (${r}, ${c}) for figure ${shapeId} (${shapeType})${canFit ? ' ✓' : ' ✗'}`
+                            });
+
+                            if (canFit) {
+                                // Place the shape
+                                for (let [dr, dc] of shape) {
+                                    grid[r + dr][c + dc] = shapeId;
+                                }
+                                
+                                allSteps.push({
+                                    grid: grid.map(row => [...row]),
+                                    checking: [],
+                                    canFit: true,
+                                    shapeType,
+                                    shapeId,
+                                    position: [r, c],
+                                    placed: true,
+                                    message: `Placed figure ${shapeId} (${shapeType}) at position (${r}, ${c})`
+                                });
+                                
+                                placed = true;
+                            }
+                        }
+                    }
+                }
+
+                allSteps.push({
+                    grid: grid.map(row => [...row]),
+                    checking: [],
+                    canFit: true,
+                    shapeType: null,
+                    shapeId: null,
+                    position: null,
+                    placed: false,
+                    message: 'All figures placed! ✨'
+                });
+
+                setSteps(allSteps);
+                setCurrentStep(0);
+            };
+
+            useEffect(() => {
+                generateSteps();
+            }, [n, m, figures]);
+
+            useEffect(() => {
+                if (isPlaying && currentStep < steps.length - 1) {
+                    const timer = setTimeout(() => {
+                        setCurrentStep(prev => prev + 1);
+                    }, speed);
+                    return () => clearTimeout(timer);
+                } else if (currentStep >= steps.length - 1) {
+                    setIsPlaying(false);
+                }
+            }, [isPlaying, currentStep, speed, steps.length]);
+
+            const currentStepData = steps[currentStep] || {
+                grid: Array(n).fill(null).map(() => Array(m).fill(0)),
+                checking: [],
+                message: 'Click "Start" to begin',
+                canFit: true,
+                placed: false
+            };
+
+            const getCellStyle = (value, r, c) => {
+                const isChecking = currentStepData.checking.some(([cr, cc]) => cr === r && cc === c);
+                
+                return {
+                    width: '60px',
+                    height: '60px',
+                    border: '2px solid #333',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '20px',
+                    fontWeight: 'bold',
+                    backgroundColor: isChecking 
+                        ? (currentStepData.canFit ? '#90EE90' : '#FFB6C6')
+                        : colors[value] || '#f0f0f0',
+                    transition: 'all 0.3s ease',
+                    transform: isChecking ? 'scale(1.1)' : 'scale(1)',
+                    boxShadow: isChecking ? '0 4px 8px rgba(0,0,0,0.3)' : 'none'
+                };
+            };
+
+            return (
+                <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif', maxWidth: '1200px', margin: '0 auto' }}>
+                    <h1 style={{ textAlign: 'center', color: '#333' }}>🧩 Tetris Block Placement Visualizer</h1>
+                    
+                    <div style={{ marginBottom: '20px', padding: '20px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Grid Height (n):</label>
+                                <input 
+                                    type="number" 
+                                    value={n} 
+                                    onChange={(e) => { setN(parseInt(e.target.value)); setIsPlaying(false); }}
+                                    min="2" 
+                                    max="10"
+                                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                                />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Grid Width (m):</label>
+                                <input 
+                                    type="number" 
+                                    value={m} 
+                                    onChange={(e) => { setM(parseInt(e.target.value)); setIsPlaying(false); }}
+                                    min="2" 
+                                    max="10"
+                                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                                />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Figures:</label>
+                                <input 
+                                    type="text" 
+                                    value={figures.join(', ')} 
+                                    onChange={(e) => { 
+                                        const newFigs = e.target.value.split(',').map(s => s.trim()).filter(s => s.match(/^[A-E]$/i));
+                                        setFigures(newFigs); 
+                                        setIsPlaying(false);
+                                    }}
+                                    placeholder="D, B, A, C"
+                                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                                />
+                                <small style={{ color: '#666' }}>Comma-separated (A, B, C, D, E)</small>
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Speed (ms):</label>
+                                <input 
+                                    type="range" 
+                                    value={speed} 
+                                    onChange={(e) => setSpeed(parseInt(e.target.value))}
+                                    min="100" 
+                                    max="2000"
+                                    step="100"
+                                    style={{ width: '100%' }}
+                                />
+                                <small style={{ color: '#666' }}>{speed}ms</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style={{ marginBottom: '20px', display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                        <button 
+                            onClick={() => setIsPlaying(!isPlaying)}
+                            style={{ padding: '10px 20px', fontSize: '16px', borderRadius: '5px', border: 'none', backgroundColor: '#4ECDC4', color: 'white', cursor: 'pointer' }}
+                        >
+                            {isPlaying ? '⏸ Pause' : '▶ Play'}
+                        </button>
+                        <button 
+                            onClick={() => { setCurrentStep(0); setIsPlaying(false); }}
+                            style={{ padding: '10px 20px', fontSize: '16px', borderRadius: '5px', border: 'none', backgroundColor: '#FF6B6B', color: 'white', cursor: 'pointer' }}
+                        >
+                            ⏮ Reset
+                        </button>
+                        <button 
+                            onClick={() => setCurrentStep(Math.max(0, currentStep - 1))}
+                            disabled={currentStep === 0}
+                            style={{ padding: '10px 20px', fontSize: '16px', borderRadius: '5px', border: 'none', backgroundColor: '#95E1D3', color: 'white', cursor: currentStep === 0 ? 'not-allowed' : 'pointer', opacity: currentStep === 0 ? 0.5 : 1 }}
+                        >
+                            ◀ Prev
+                        </button>
+                        <button 
+                            onClick={() => setCurrentStep(Math.min(steps.length - 1, currentStep + 1))}
+                            disabled={currentStep >= steps.length - 1}
+                            style={{ padding: '10px 20px', fontSize: '16px', borderRadius: '5px', border: 'none', backgroundColor: '#95E1D3', color: 'white', cursor: currentStep >= steps.length - 1 ? 'not-allowed' : 'pointer', opacity: currentStep >= steps.length - 1 ? 0.5 : 1 }}
+                        >
+                            Next ▶
+                        </button>
+                    </div>
+
+                    <div style={{ textAlign: 'center', marginBottom: '20px', fontSize: '18px', fontWeight: 'bold', color: '#333', minHeight: '30px' }}>
+                        {currentStepData.message}
+                    </div>
+
+                    <div style={{ textAlign: 'center', marginBottom: '10px', color: '#666' }}>
+                        Step {currentStep + 1} of {steps.length}
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '30px' }}>
+                        <div style={{ display: 'inline-block' }}>
+                            {currentStepData.grid.map((row, r) => (
+                                <div key={r} style={{ display: 'flex' }}>
+                                    {row.map((cell, c) => (
+                                        <div key={c} style={getCellStyle(cell, r, c)}>
+                                            {cell !== 0 ? cell : ''}
+                                        </div>
+                                    ))}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div style={{ marginTop: '30px', padding: '20px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
+                        <h3 style={{ marginTop: 0 }}>Shape Reference:</h3>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '15px' }}>
+                            {Object.entries(shapes).map(([letter, coords]) => {
+                                const minRow = Math.min(...coords.map(([r]) => r));
+                                const maxRow = Math.max(...coords.map(([r]) => r));
+                                const minCol = Math.min(...coords.map(([_, c]) => c));
+                                const maxCol = Math.max(...coords.map(([_, c]) => c));
+                                const height = maxRow - minRow + 1;
+                                const width = maxCol - minCol + 1;
+                                const shapeGrid = Array(height).fill(null).map(() => Array(width).fill(0));
+                                coords.forEach(([r, c]) => {
+                                    shapeGrid[r - minRow][c - minCol] = 1;
+                                });
+
+                                return (
+                                    <div key={letter} style={{ textAlign: 'center' }}>
+                                        <strong>{letter}:</strong>
+                                        <div style={{ display: 'inline-block', marginTop: '5px' }}>
+                                            {shapeGrid.map((row, r) => (
+                                                <div key={r} style={{ display: 'flex' }}>
+                                                    {row.map((cell, c) => (
+                                                        <div 
+                                                            key={c} 
+                                                            style={{
+                                                                width: '25px',
+                                                                height: '25px',
+                                                                border: '1px solid #333',
+                                                                backgroundColor: cell ? '#333' : '#fff'
+                                                            }}
+                                                        />
+                                                    ))}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    <div style={{ marginTop: '20px', padding: '15px', backgroundColor: '#e3f2fd', borderRadius: '8px' }}>
+                        <h4 style={{ marginTop: 0 }}>How it works:</h4>
+                        <ol style={{ lineHeight: '1.8' }}>
+                            <li><strong>Start with empty grid:</strong> All cells initialized to 0</li>
+                            <li><strong>Process figures in order:</strong> Each figure gets a unique ID (1, 2, 3...)</li>
+                            <li><strong>Find placement:</strong> For each figure, scan from top-left (row 0, col 0)</li>
+                            <li><strong>Check if fits:</strong> Verify all cells are in bounds and empty (value = 0)</li>
+                            <li><strong>Place figure:</strong> Use first valid position found, set cells to figure ID</li>
+                            <li><strong>Repeat:</strong> Continue until all figures are placed</li>
+                        </ol>
+                        <p style={{ marginBottom: 0 }}>
+                            <strong>Color coding:</strong> 
+                            <span style={{ marginLeft: '10px', padding: '2px 8px', backgroundColor: '#90EE90', borderRadius: '3px' }}>Green = Valid position</span>
+                            <span style={{ marginLeft: '10px', padding: '2px 8px', backgroundColor: '#FFB6C6', borderRadius: '3px' }}>Pink = Invalid position</span>
+                        </p>
+                    </div>
+                </div>
+            );
+        };
+
+        ReactDOM.render(<TetrisVisualizer />, document.getElementById('root'));
+    </script>
+</body>
+</html>
